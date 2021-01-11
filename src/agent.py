@@ -1,4 +1,5 @@
 from random import random, randint
+from numpy.testing._private.utils import requires_memory
 import torch
 
 from model import DQN
@@ -47,13 +48,35 @@ class DQNAgent:
 
     def get_best_action_wGrad(self, state):
         state = torch.from_numpy(state).to(device)
-        q = self.model(state)
-
-        m, index = torch.max(q, 1)
+        state.requires_grad_(True)
+        output = self.model(state)
+        
+        m, index = torch.max(output, 1)
         action = index.item()
+        # print(output)
+        one_hot = torch.FloatTensor(1,3).zero_().to(device)
+        # print(one_hot.size())
+        one_hot[0][action] = 1
+       
+        output.backward(gradient=one_hot)
+        
+        grads = state.grad.clone()
+        grads.squeeze_(0) # le _ c'est pour dire in place opti de calcul
 
-        grads = torch.zeros([112, 64], device="cpu", requires_grad=False).numpy()
-
+        # print(grads.size())
+        
+        grads.transpose_(0,1) # On changes l'ordre des dimensions ici on inverse la dim 0 à la dim 1
+        grads.transpose_(1,2) # On changes l'ordre des dimensions ici on inverse la dim 1 à la dim 2
+        
+        grads = np.amax(grads.numpy(), axis=2)
+        
+        # On suprimme les valeurs négatives
+        grads[grads < 0] = 0
+        
+        # On normalise les valeurs
+        grads -= grads.min()
+        grads /= grads.max()
+        
         grads *= 254
         grads = grads.astype(np.int8)
 
