@@ -24,7 +24,7 @@
     let metaData
 
     async function load_data_light() {
-        return await d3.csv("projection.csv")
+        return await d3.csv("https://raw.githubusercontent.com/pi-aire/IHM-interpretDL/main/src/projection.csv?token=ALYGNTNOMYR5N7SHHV32FK3ADHKKS")
     }
 
 
@@ -51,7 +51,8 @@
 
 
         let colScale = function (d) {
-            return "steelblue"
+            let colors = ["#ff0000","#40ff00","#8000ff","#0040ff","#ffff00"]
+            return colors[d]
         }
 
         if (data[0]["args"]) {
