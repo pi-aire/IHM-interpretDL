@@ -20,6 +20,7 @@ class DQNAgent:
         self.memory = ReplayMemory(args)
         self.batch_size = args.batch_size
         self.actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        self.vectors = []
 
     def update_esplison(self, epoch):
         if epoch < self.decay_end:
@@ -49,8 +50,8 @@ class DQNAgent:
     def get_best_action_wGrad(self, state):
         state = torch.from_numpy(state).to(device)
         state.requires_grad_(True)
-        output = self.model(state)
-        
+        output, vector = self.model(state)
+        self.vectors.append(vector)
         m, index = torch.max(output, 1)
         action = index.item()
         # print(output)

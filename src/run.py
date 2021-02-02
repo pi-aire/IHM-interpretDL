@@ -8,6 +8,7 @@ import numpy as np
 
 from moviepy.editor import ImageSequenceClip
 
+from utils import embedding2csv
 import umap
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -22,7 +23,7 @@ def parsearg():
     parser.add_argument('--scenario', type=str, default="basic", help='vizdoom scenario')
     parser.add_argument('--test_mod', type=bool, default=False, help=' test or train model')
 
-    parser.add_argument('--n_epochs', type=int, default=1, help='number of epochs of training')
+    parser.add_argument('--n_epochs', type=int, default=1000, help='number of epochs of training')
     parser.add_argument('--learning_steps_per_epoch', type=int, default=2000, help='number of steps per epoch')
     parser.add_argument('--batch_size', type=int, default=64, help='size of the batches')
     parser.add_argument('--lr', type=float, default=0.00025, help='adam: learning rate')
@@ -43,17 +44,18 @@ def parsearg():
 
 def run():
     print("Making videos")
+    actions_b = []
     for epoch in range(args.n_epochs):
         env.game.new_episode()
         print("\nEpisode %d\n-------" % (epoch + 1))
         imgs = []
-
         while not env.game.is_episode_finished():
             state = env.get_state()
 
             # TODO: Change this function to return a correct grad
             best_action_index, grads = agent.get_best_action_wGrad(state)
-
+            actions_b.append(best_action_index)
+            
             env.game.make_action(agent.actions[best_action_index], args.frame_repeat)
             state = np.squeeze(state)
 
@@ -72,7 +74,10 @@ def run():
             # grads =  format_saliency_bprop(img)
 
             imgs.append(merge_img(state, grads, nb))
-
+    embedding = umap.UMAP(n_neighbors=5,
+                min_dist=0.3,
+                metric='correlation').fit_transform(agent.vectors)
+    embedding2csv(embedding, actions_b)
     make_movie(imgs, "video/video_" + str(epoch + 1) + ".mp4")
 
 
